@@ -16,7 +16,7 @@ using System.Globalization;
 
 namespace IoTRobotWorldUDPServer
 {
-    public partial class Form1 : Form
+    public partial class Form : System.Windows.Forms.Form
     {
         bool Automatization = false;
 
@@ -34,14 +34,16 @@ namespace IoTRobotWorldUDPServer
         UdpClient udpClient; // = new UdpClient(11000);
         Thread thread;
 
-        string[] dataForSave = {"az", "d1", "d2", "d3", "d4", "d5", "d6", "d7" };
-        int d1, d2, d3, d4, d5, d6, d7, le = 0;
+        string[] dataForSave = { "az", "d1", "d2", "d3", "d4", "d5", "d6", "d7" };
+        int d0, d1, d2, d3, d4, d5, d6, d7, le = 0;
         float x, y, re = 0;
         int az = 0;
+        int globalTickCounter = 0;
 
-        public Form1()
+        public Form()
         {
             InitializeComponent();
+            timer2.Stop();
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -98,7 +100,7 @@ namespace IoTRobotWorldUDPServer
         private void StopUDPClient()
         {
             if ((thread != null) && (udpClient != null))
-            { 
+            {
                 thread.Abort();
                 udpClient.Close();
                 thread = null;
@@ -134,7 +136,7 @@ namespace IoTRobotWorldUDPServer
             }
             CheckStartStopUDPClient();
         }
-       
+
         private void StartStopUDPClientButton_Click(object sender, EventArgs e)
         {
             if (udpClient == null)
@@ -160,21 +162,24 @@ namespace IoTRobotWorldUDPServer
             {
                 try
                 {
-                    string[] valuesToChek =  textBox1.Text.Split(','); 
+                    string[] valuesToChek = textBox1.Text.Split(',');
                     IPEndPoint remoteIPEndPoint = new IPEndPoint(IPAddress.Any, 0); // port);
                     byte[] content = udpClient.Receive(ref remoteIPEndPoint);
                     if (content.Length > 0)
                     {
                         string message = Encoding.ASCII.GetString(content);
                         string[] allMassage = message.Split(',');
-                        string correctMassage = null;
-
+                        string correctMassage = string.Empty;
+                        string outMassage = string.Empty;
                         for (int i = 0; i <= allMassage.Length; i++)
                         {
-                            foreach( string values in valuesToChek)
+
+                            foreach (string values in valuesToChek)
                             {
                                 if (allMassage[i].Contains("az"))
                                     az = Convert.ToInt32(allMassage[i].Split(':')[1].Trim(new Char[] { '"' }));
+                                else if (allMassage[i].Contains("d0"))
+                                    d0 = Convert.ToInt32(allMassage[i].Split(':')[1].Trim(new Char[] { '"' }));
                                 else if (allMassage[i].Contains("d1"))
                                     d1 = Convert.ToInt32(allMassage[i].Split(':')[1].Trim(new Char[] { '"' }));
                                 else if (allMassage[i].Contains("d2"))
@@ -197,7 +202,7 @@ namespace IoTRobotWorldUDPServer
                                     le = Convert.ToInt32(allMassage[i].Split(':')[1].Trim(new Char[] { '"' }));
                                 else if (allMassage[i].Contains("t"))
                                     re = float.Parse(allMassage[i].Split(':')[1].Trim(new Char[] { '"' }));
-                                
+
 
                                 if (allMassage[i].Contains('n'))
                                 {
@@ -206,7 +211,7 @@ namespace IoTRobotWorldUDPServer
                                     lastCommanNumber = Int32.Parse(commandNumber);
                                     currentCommanNumber = lastCommanNumber;
                                 }
-                                if (allMassage[i].Contains(values) )
+                                if (allMassage[i].Contains(values))
                                 {
                                     correctMassage += String.Join(" ", allMassage[i]);
                                     if (correctMassage.Length >= (textBox1.Text.Length * 1))
@@ -215,12 +220,14 @@ namespace IoTRobotWorldUDPServer
                                     }
                                 }
                             }
-                            
+                            this.Invoke(new Action(() => UpdateListBox(outMassage)));
+
 
                         }
+
                     }
                 }
-                catch (Exception ex) 
+                catch (Exception ex)
                 {
                     if (ex.ToString() != oldError)
                     {
@@ -230,14 +237,24 @@ namespace IoTRobotWorldUDPServer
                 }
             }
         }
-
+        private void UpdateListBox(string message)
+        {
+            d_0.Text = "d0: " + Convert.ToString(d0);
+            d_1.Text = "d1: " + Convert.ToString(d1);
+            d_2.Text = "d2: " + Convert.ToString(d2);
+            d_3.Text = "d3: " + Convert.ToString(d3);
+            d_4.Text = "d4: " + Convert.ToString(d4);
+            d_5.Text = "d5: " + Convert.ToString(d5);
+            d_6.Text = "d6: " + Convert.ToString(d6);
+            d_7.Text = "d7: " + Convert.ToString(d7);
+        }
         private void SendUDPMessage(string s)
         {
             if (udpClient != null)
             {
-                Int32 port = Int32.Parse(RemotePortTextBox.Text); 
+                Int32 port = Int32.Parse(RemotePortTextBox.Text);
                 IPAddress ip = IPAddress.Parse(RemoteIPTextBox.Text.Trim());
-                IPEndPoint ipEndPoint = new IPEndPoint(ip,port);
+                IPEndPoint ipEndPoint = new IPEndPoint(ip, port);
                 byte[] content = Encoding.ASCII.GetBytes(s);
                 try
                 {
@@ -253,6 +270,11 @@ namespace IoTRobotWorldUDPServer
                 }
 
             }
+        }
+
+        private void timer2_Tick(object sender, EventArgs e)
+        {
+            globalTickCounter += 1;
         }
 
         private void SendUDPMessageButton_Click(object sender, EventArgs e)
@@ -286,17 +308,15 @@ namespace IoTRobotWorldUDPServer
 
         private void button1_Click(object sender, EventArgs e)
         {
-            if(Automatization == false)
+            if (Automatization == false)
             {
                 Automatization = true;
-                button1.Text = "Stop";
-                button1.BackColor = Color.Red;
+                
             }
             else
             {
                 Automatization = false;
-                button1.Text = "Start Automatization";
-                button1.BackColor = Color.White;
+
             }
         }
 
@@ -305,81 +325,63 @@ namespace IoTRobotWorldUDPServer
 
         }
         int counter = 0;
+        void rotate(int rotate)
+        {
+            if (az == rotate || az == (rotate + 1) || az == (rotate - 1))
+            {
+                SendUDPMessage(@"{ ""N"":" + (currentCommanNumber++) + @", ""M"":0, ""F"":0, ""B"":0, ""T"":0}" + "\n");
+                SendUDPMessage(@"{ ""N"":" + (currentCommanNumber++) + @", ""M"":0, ""F"":0, ""B"":0, ""T"":0}" + "\n");
+            }
+            else if ((az >= (rotate - 10)) && az <= rotate)
+            {
+                SendUDPMessage(@"{ ""N"":" + (currentCommanNumber++) + @", ""M"":0, ""F"":0, ""B"":2, ""T"":0}" + "\n");
+                SendUDPMessage(@"{ ""N"":" + (currentCommanNumber++) + @", ""M"":0, ""F"":0, ""B"":2, ""T"":0}" + "\n");
+            }
+            else if ((az <= (rotate + 10)) && az >= rotate)
+            {
+                SendUDPMessage(@"{ ""N"":" + (currentCommanNumber++) + @", ""M"":0, ""F"":0, ""B"":-2, ""T"":0}" + "\n");
+                SendUDPMessage(@"{ ""N"":" + (currentCommanNumber++) + @", ""M"":0, ""F"":0, ""B"":-2, ""T"":0}" + "\n");
+            }
+            else if (az > rotate)
+            {
+                SendUDPMessage(@"{ ""N"":" + (currentCommanNumber++) + @", ""M"":0, ""F"":0, ""B"":-20, ""T"":0}" + "\n");
+                SendUDPMessage(@"{ ""N"":" + (currentCommanNumber++) + @", ""M"":0, ""F"":0, ""B"":-20, ""T"":0}" + "\n");
+
+            }
+            else if (az < rotate)
+            {
+                SendUDPMessage(@"{ ""N"":" + (currentCommanNumber++) + @", ""M"":0, ""F"":0, ""B"":20, ""T"":0}" + "\n");
+                SendUDPMessage(@"{ ""N"":" + (currentCommanNumber++) + @", ""M"":0, ""F"":0, ""B"":20, ""T"":0}" + "\n");
+            }
+
+
+        }
+        int comandCounters = 0;
+
         private void timer1_Tick(object sender, EventArgs e)
         {
-            textBox2.Text = Convert.ToString(re) + " : " + Convert.ToString(y);
-
             if (Automatization)
             {
-                if(counter == 0)
+                if (comandCounters == 0)
                 {
-                    currentCommanNumber += 1;
-                    if (y <= 6.4)
+                    if (d0 >= 100)
                     {
-                        SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":80, ""B"":0, ""T"":0}" + "\n");
-                        SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":80, ""B"":0, ""T"":0}" + "\n");
+                        SendUDPMessage(@"{ ""N"":" + (currentCommanNumber++) + @", ""M"":0, ""F"":100, ""B"":0, ""T"":0}" + "\n");
+                        SendUDPMessage(@"{ ""N"":" + (currentCommanNumber++) + @", ""M"":0, ""F"":100, ""B"":0, ""T"":0}" + "\n");
                     }
                     else
                     {
-                        //SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":0, ""B"":0, ""T"":0}" + "\n");
-                        //SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":0, ""B"":0, ""T"":0}" + "\n");
-                        if(az < 40)
-                        {
-                            SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":0, ""B"":90, ""T"":0}" + "\n");
-                            SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":0, ""B"":90, ""T"":0}" + "\n");
-                        }
-                        else if (az <= 50)
-                        {
-                            SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":0, ""B"":10, ""T"":0}" + "\n");
-                            SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":0, ""B"":10, ""T"":0}" + "\n");
-                        }
-                        //else if (az > 51){
-                        //    SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":0, ""B"":-10, ""T"":0}" + "\n");
-                        //    SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":0, ""B"":-10, ""T"":0}" + "\n");
-                        //}
-                        else
-                        {
-                            SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":0, ""B"":0, ""T"":0}" + "\n");
-                            SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":0, ""B"":0, ""T"":0}" + "\n");
-                        }
+                        SendUDPMessage(@"{ ""N"":" + (currentCommanNumber++) + @", ""M"":0, ""F"":0, ""B"":0, ""T"":0}" + "\n");
+                        SendUDPMessage(@"{ ""N"":" + (currentCommanNumber++) + @", ""M"":0, ""F"":0, ""B"":0, ""T"":0}" + "\n");
+                        rotate(0);
+
                     }
-
                 }
-                //if (az >= 0 && az <= 1 )
-                //{
-                //    if( x <= 6.5)
-                //        SendUDPMessage(@"{ ""N"":" + (currentCommanNumber += 1) + @", ""M"":0, ""F"":80, ""B"":0, ""T"":0}" + "\n");
-                //        SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":80, ""B"":0, ""T"":0}" + "\n");
-                //    else if (x <= 6.7)
-                //        SendUDPMessage(@"{ ""N"":" + (currentCommanNumber += 1) + @", ""M"":0, ""F"":40, ""B"":0, ""T"":0}" + "\n");
-                //        SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":40, ""B"":0, ""T"":0}" + "\n");
-                //    else if (x >= 6.7 && x < 6.8)
-                //        SendUDPMessage(@"{ ""N"":" + (currentCommanNumber += 1) + @", ""M"":0, ""F"":0, ""B"":0, ""T"":0}" + "\n");
-                //        SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":0, ""B"":0, ""T"":0}" + "\n
-                //}
-                //else if ((az >= (3) && az <= (10) && !orintation)){
-                //    SendUDPMessage(@"{ ""N"":" + (currentCommanNumber += 1) + @", ""M"":0, ""F"":40, ""B"":-1, ""T"":0}" + "\n");
-                //    SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":40, ""B"":-1, ""T"":0}" + "\n");
-                //}
-                //else if ((az <= (358) && az >= (340) && !orintation))
-                //{
-                //    SendUDPMessage(@"{ ""N"":" + (currentCommanNumber += 1) + @", ""M"":0, ""F"":40, ""B"":4, ""T"":0}" + "\n");
-                //    SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":40, ""B"":4, ""T"":0}" + "\n");
-                //}
-                //else if ((az <= (360/2 + 2)) && !orintation)
-                //{
-                //    SendUDPMessage(@"{ ""N"":" + (currentCommanNumber += 1) + @", ""M"":0, ""F"":0, ""B"":-10, ""T"":0}" + "\n");
-                //    SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":0, ""B"":-10, ""T"":0}" + "\n");
-
-                //}else if ((az >= (360 / 2 - 4)) && !orintation)
-                //{
-                //    SendUDPMessage(@"{ ""N"":" + (currentCommanNumber += 1) + @", ""M"":0, ""F"":0, ""B"":10, ""T"":0}" + "\n");
-                //    SendUDPMessage(@"{ ""N"":" + (currentCommanNumber) + @", ""M"":0, ""F"":0, ""B"":10, ""T"":0}" + "\n")
-                //}  
+                else if (comandCounters == 1)
+                {
+                    
+                }
             }
-        }
-        private void AppendLFSymbolCheckBox_CheckedChanged(object sender, EventArgs e)
-        {
 
         }
     }
